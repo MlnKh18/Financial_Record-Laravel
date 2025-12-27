@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\ReportController;
 | PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
+
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 
 /*
@@ -23,7 +24,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Auth
     Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
-    Route::get('/me', fn () => auth()->user())->name('api.me');
+    Route::get('/me', fn() => auth()->user())->name('api.me');
 
     /*
     |--------------------------------------------------------------------------
@@ -48,6 +49,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             // Financial Report
             Route::get('/reports', [ReportController::class, 'index'])
                 ->name('admin.reports');
+            Route::get('/reports/charts', [ReportController::class, 'charts']);
         });
-
 });

@@ -25,7 +25,6 @@ class TransactionService
                 'transaction_date' => $data['transaction_date'],
                 'approved_at'      => $this->autoApprove(),
             ]);
-
         });
     }
 
@@ -80,6 +79,72 @@ class TransactionService
             'balance' => $income - $expense,
         ];
     }
+    /**
+     * Monthly financial report
+     */
+    public function monthly(array $filters = [])
+    {
+        $query = DB::table('transactions')
+            ->selectRaw('
+            DATE_FORMAT(transaction_date, "%Y-%m") as month,
+            SUM(CASE WHEN type = "income" THEN amount ELSE 0 END) as income,
+            SUM(CASE WHEN type = "expense" THEN amount ELSE 0 END) as expense
+        ')
+            ->whereNotNull('approved_at');
+
+        if (!empty($filters['from']) && !empty($filters['to'])) {
+            $query->whereBetween('transaction_date', [
+                $filters['from'],
+                $filters['to']
+            ]);
+        }
+
+        return $query
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn($row) => [
+                'month'   => $row->month,
+                'income'  => (float) $row->income,
+                'expense' => (float) $row->expense,
+                'balance' => (float) $row->income - $row->expense,
+            ]);
+    }
+
+    /**
+     * Category based report
+     */
+    public function byCategory(array $filters = [])
+    {
+        $query = DB::table('transactions')
+            ->join('categories', 'categories.id', '=', 'transactions.category_id')
+            ->selectRaw('
+            categories.name as category,
+            SUM(transactions.amount) as total
+        ')
+            ->whereNotNull('transactions.approved_at');
+
+        if (!empty($filters['type'])) {
+            $query->where('transactions.type', $filters['type']);
+        }
+
+        if (!empty($filters['from']) && !empty($filters['to'])) {
+            $query->whereBetween('transaction_date', [
+                $filters['from'],
+                $filters['to']
+            ]);
+        }
+
+        return $query
+            ->groupBy('categories.name')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn($row) => [
+                'category' => $row->category,
+                'total' => (float) $row->total,
+            ]);
+    }
+
 
     /**
      * Approve transaction (ADMIN)
