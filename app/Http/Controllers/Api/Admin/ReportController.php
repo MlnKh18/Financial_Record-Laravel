@@ -18,27 +18,23 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['from', 'to']);
-
-        $summary = $this->transactionService->summary($filters);
-
-        return response()->json([
-            'period' => $filters,
-            'summary' => $summary,
-        ]);
+        return response()->json(
+            $this->transactionService->report($request->all())
+        );
     }
     /**
      * Chart-ready financial report
      * GET /api/admin/reports/charts
      */
-    public function charts(Request $request)
+    public function chart(Request $request)
     {
-        $filters = $request->only(['from', 'to', 'type']);
-
-        return response()->json([
-            'summary' => $this->transactionService->summary($filters),
-            'monthly' => $this->transactionService->monthly($filters),
-            'by_category' => $this->transactionService->byCategory($filters),
-        ]);
+        return response()->json(
+            $this->transactionService->chartMonthly($request->all())
+        );
+    }
+    public function categoryChart(){
+        return response()->json(
+            $this->transactionService->chartByCategory()
+        );
     }
 }

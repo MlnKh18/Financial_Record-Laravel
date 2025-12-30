@@ -60,8 +60,7 @@ class TransactionService
      */
     public function summary(array $filters = []): array
     {
-        $query = Transaction::query()
-            ->whereNotNull('approved_at');
+        $query = Transaction::query();
 
         if (!empty($filters['from']) && !empty($filters['to'])) {
             $query->whereBetween('transaction_date', [
@@ -74,9 +73,9 @@ class TransactionService
         $expense = (clone $query)->where('type', 'expense')->sum('amount');
 
         return [
-            'income'  => $income,
-            'expense' => $expense,
-            'balance' => $income - $expense,
+            'income'  => (float) $income,
+            'expense' => (float) $expense,
+            'balance' => (float) ($income - $expense),
         ];
     }
     /**
@@ -145,6 +144,19 @@ class TransactionService
             ]);
     }
 
+    public function chartByCategory(): array
+    {
+        $data = Transaction::with('category')
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->get();
+
+        return [
+            'labels' => $data->pluck('category.name'),
+            'values' => $data->pluck('total'),
+        ];
+    }
+
 
     /**
      * Approve transaction (ADMIN)
@@ -156,6 +168,95 @@ class TransactionService
         ]);
 
         return $transaction;
+    }
+
+    public function report(array $filters = []): array
+    {
+        $query = Transaction::with(['category', 'source']);
+
+        if (!empty($filters['from']) && !empty($filters['to'])) {
+            $query->whereBetween('transaction_date', [
+                $filters['from'],
+                $filters['to']
+            ]);
+        }
+
+        $transactions = $query->latest()->get();
+
+        // Summary
+        $income = $transactions->where('type', 'income')->sum('amount');
+        $expense = $transactions->where('type', 'expense')->sum('amount');
+
+        // Monthly grouping
+        $monthly = $transactions
+            ->groupBy(fn($t) => $t->transaction_date->format('Y-m'))
+            ->map(function ($items, $month) {
+                return [
+                    'month' => $month,
+                    'income' => $items->where('type', 'income')->sum('amount'),
+                    'expense' => $items->where('type', 'expense')->sum('amount'),
+                ];
+            })->values();
+
+        // Category grouping
+        $byCategory = $transactions
+            ->groupBy(fn($t) => $t->category->name)
+            ->map(function ($items, $category) {
+                return [
+                    'category' => $category,
+                    'total' => $items->sum('amount'),
+                ];
+            })->values();
+
+        return [
+            'summary' => [
+                'income' => $income,
+                'expense' => $expense,
+                'balance' => $income - $expense,
+            ],
+            'transactions' => $transactions->map(function ($t) {
+                return [
+                    'id' => $t->id,
+                    'type' => $t->type,
+                    'amount' => $t->amount,
+                    'category' => $t->category->name,
+                    'source' => $t->source->name,
+                    'date' => $t->transaction_date->toDateString(),
+                ];
+            }),
+            'grouping' => [
+                'monthly' => $monthly,
+                'by_category' => $byCategory,
+            ]
+        ];
+    }
+
+    public function chartMonthly(array $filters = []): array
+    {
+        $query = Transaction::query();
+
+        if (!empty($filters['from']) && !empty($filters['to'])) {
+            $query->whereBetween('transaction_date', [
+                $filters['from'],
+                $filters['to']
+            ]);
+        }
+
+        $data = $query
+            ->selectRaw("
+            DATE_FORMAT(transaction_date, '%Y-%m') as month,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
+            SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
+        ")
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        return [
+            'labels' => $data->pluck('month'),
+            'income' => $data->pluck('income'),
+            'expense' => $data->pluck('expense'),
+        ];
     }
 
     /**

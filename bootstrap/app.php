@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        // ✅ REGISTER API MIDDLEWARE GROUP
+        $middleware->group('api', [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+
+        // ✅ REGISTER ROLE ALIAS
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);

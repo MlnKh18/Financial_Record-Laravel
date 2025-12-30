@@ -14,8 +14,29 @@ class TransactionResource extends JsonResource
             Transaction::with(['category', 'source', 'user'])->latest()->get()
         );
     }
-    public function toArray(Request $request): array
+    public function toArray($request)
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'type' => $this->type,
+            'amount' => $this->amount,
+            'description' => $this->description,
+            'transaction_date' => $this->transaction_date,
+
+            'category' => [
+                'id' => $this->category?->id,
+                'name' => $this->category?->name,
+            ],
+
+            'source' => [
+                'id' => $this->source?->id,
+                'name' => $this->source?->name,
+            ],
+
+            'user' => [
+                'id' => $this->user?->id,
+                'name' => $this->user?->name,
+            ],
+        ];
     }
 }

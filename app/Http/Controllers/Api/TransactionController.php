@@ -3,43 +3,44 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaction;
+use App\Services\TransactionService;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
+    public function __construct(
+        private TransactionService $transactionService
+    ) {}
+
     /**
-     * Display a listing of the resource.
+     * GET /api/transactions
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        return response()->json(
+            $this->transactionService->list($request->all())
+        );
     }
 
     /**
-     * Store a newly created resource in storage.
+     * POST /api/transactions
      */
-   public function store(Request $request)
-{
-    $request->validate([
-        'category_id' => 'required|exists:categories,id',
-        'source_id' => 'required|exists:sources,id',
-        'type' => 'required|in:income,expense',
-        'amount' => 'required|numeric|min:0',
-        'transaction_date' => 'required|date',
-    ]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id'      => 'required|exists:categories,id',
+            'source_id'        => 'required|exists:sources,id',
+            'type'             => 'required|in:income,expense',
+            'amount'           => 'required|numeric|min:0',
+            'description'      => 'nullable|string',
+            'transaction_date' => 'required|date',
+        ]);
 
-    $transaction = Transaction::create([
-        'user_id' => $request->user()->id,
-        'category_id' => $request->category_id,
-        'source_id' => $request->source_id,
-        'type' => $request->type,
-        'amount' => $request->amount,
-        'description' => $request->description,
-        'transaction_date' => $request->transaction_date,
-    ]);
+        $transaction = $this->transactionService->create([
+            ...$validated,
+            'user_id' => auth()->id(),
+        ]);
 
-    return response()->json($transaction, 201);
-}
-
+        return response()->json($transaction, 201);
+    }
 }

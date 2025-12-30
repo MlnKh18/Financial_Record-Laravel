@@ -11,18 +11,19 @@ class Transaction extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'type',        // income | expense
-        'amount',
-        'description',
+        'user_id',
         'category_id',
         'source_id',
-        'user_id',
-        'approved_at',
+        'type',
+        'amount',
+        'description',
+        'transaction_date',
+
     ];
 
+
     protected $casts = [
-        'amount' => 'decimal:2',
-        'approved_at' => 'datetime',
+        'transaction_date' => 'date',
     ];
     public function user()
     {
