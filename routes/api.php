@@ -32,6 +32,8 @@ Route::middleware('api')->group(function () {
             Route::get('reports', [ReportController::class, 'index']);
             Route::get('reports/charts', [ReportController::class, 'chart']);
             Route::get('reports/category-chart', [ReportController::class, 'categoryChart']);
+            Route::get('reports/export/excel', [ReportController::class, 'exportExcel']);
+            Route::get('reports/export/pdf', [ReportController::class, 'exportPdf']);
         });
     });
 });

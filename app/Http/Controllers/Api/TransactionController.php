@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\TransactionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
@@ -43,4 +44,5 @@ class TransactionController extends Controller
 
         return response()->json($transaction, 201);
     }
+
 }

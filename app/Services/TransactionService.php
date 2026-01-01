@@ -35,11 +35,9 @@ class TransactionService
     {
         $query = Transaction::with(['category', 'source', 'user']);
 
-        // 🔐 Role-based visibility
-        if (auth()->user()->role !== 'admin') {
+        if (auth()->check() && auth()->user()->role !== 'admin') {
             $query->where('user_id', auth()->id());
         }
-
         // Filters
         if (!empty($filters['type'])) {
             $query->where('type', $filters['type']);
